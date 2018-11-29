@@ -2,12 +2,44 @@
 
 cd /healthchecks || { echo "/healthchecks directory not found. Exit 1"; exit 1; }
 
-DB_TYPE="${DB_TYPE:-sqlite3}"
-DB_HOST="${DB_HOST:-127.0.0.1}"
-DB_PORT="${DB_PORT:-3306}"
-DB_NAME="${DB_NAME:-healthchecks}"
-DB_USER="${DB_USER:-healthchecks}"
-DB_PASSWORD="${DB_PASSWORD:-healthchecks}"
+
+############# Parse database URL ###############
+
+# extract the protocol
+proto="`echo $DATABASE_URL | grep '://' | sed -e's,^\(.*://\).*,\1,g'`"
+# remove the protocol
+url=`echo $DATABASE_URL | sed -e s,$proto,,g`
+
+# extract the user and password (if any)
+userpass="`echo $url | grep @ | cut -d@ -f1`"
+pass=`echo $userpass | grep : | cut -d: -f2`
+if [ -n "$pass" ]; then
+    user=`echo $userpass | grep : | cut -d: -f1`
+else
+    user=$userpass
+fi
+
+# extract the host -- updated
+hostport=`echo $url | sed -e s,$userpass@,,g | cut -d/ -f1`
+port=`echo $hostport | grep : | cut -d: -f2`
+if [ -n "$port" ]; then
+    host=`echo $hostport | grep : | cut -d: -f1`
+else
+    host=$hostport
+fi
+
+# extract the path (if any)
+path="`echo $url | grep / | cut -d/ -f2-`"
+
+############# END ###############
+
+DB_TYPE="${DB_TYPE:-postgresql}"
+DB_HOST="${host:-127.0.0.1}"
+DB_PORT="${port:-3306}"
+DB_NAME="${path:-healthchecks}"
+DB_USER="${user:-healthchecks}"
+DB_PASSWORD="${pass:-healthchecks}"
+
 # Possible settings, see README.md for more info
 # HC_SITE_ROOT
 # HC_SITE_NAME
